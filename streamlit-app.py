@@ -81,7 +81,7 @@ st.title('Synth Parameter Estimator 🎹')
 
 upload_columns = st.columns((5,5))
 with upload_columns[0]:
-    st.text('Pitch detection (courtesy of CREPE) is in use.')
+    st.markdown('Pitch detection (courtesy of [CREPE](https://github.com/marl/crepe)) is in use.')
     predict_note_octave = st.checkbox('Would you rather select the note and octave?')
     if predict_note_octave == True:
         chosen_note = st.selectbox('Pick note', options=['A', 'A#', 'B', 'C', 'C#', 'D', 'E', 'F', 'F#', 'G', 'G#'])
@@ -114,14 +114,12 @@ if file is not None:
 
         #display.waveshow(lib_samp)
 
-    st.text('Predictions')
 
     spec_img = load_img('og_spec_no_axis.png')
     adsr_img = load_img('og_adsr_no_axis.png', target_size=(256, 256))
     
     spec_img_array = img_to_array(spec_img)
     spec_img_batch = np.expand_dims(spec_img_array, axis=0)
-    st.text((list(json.loads(class_labels).keys())[wv_model.predict(spec_img_batch).argmax(-1)[0]]))
 
     adsr_img_array = img_to_array(adsr_img)
     adsr_img_batch = np.expand_dims(adsr_img_array, axis=0)
@@ -139,14 +137,6 @@ if file is not None:
     _, pitches, _, _ = crepe.predict(samples[sample_rate*(int(float(a_dur))):(sample_rate*(int(float(a_dur)))+sample_rate)], sr=sample_rate)
 
     print(librosa.hz_to_note(pitches.mean()))
-
-    st.text(f'''
-        Attack Duration: {a_dur}s
-        Decay Duration: {d_dur}s
-        Sustain Duration: {s_dur}s
-        Release Duration: {r_dur}s
-        Sustain Level: {float(s_lvl)*100}%
-        ''')
 
     waveform_prediction = (list(json.loads(class_labels).keys())[wv_model.predict(spec_img_batch).argmax(-1)[0]]) 
 
@@ -194,6 +184,16 @@ if file is not None:
     with est_cols[2]:
         st.subheader('Sample Estimation')
         st.audio(open('estimation.wav', 'rb'), format="audio/wav", start_time=0)
+        
+        st.text('Predictions')
+        st.text((list(json.loads(class_labels).keys())[wv_model.predict(spec_img_batch).argmax(-1)[0]]))
+        st.text(f'''
+        Attack Duration: {a_dur}s
+        Decay Duration: {d_dur}s
+        Sustain Duration: {s_dur}s
+        Release Duration: {r_dur}s
+        Sustain Level: {float(s_lvl)*100}%
+        ''')
 
     # oscillators.ModulatedOscillator
 

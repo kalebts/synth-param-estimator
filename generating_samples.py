@@ -133,7 +133,8 @@ elif (True): # Group 3: making samples with multiple waves, ADSR, slightly detun
         'saw_wave', 'saw_freq', 'triangle_wave', 'triangle_freq', 'note', 'octave', 'note_octave', 
         'attack_duration', 'decay_duration', 'sustain_level', 'sustain_duration', 'release_duration'])
         
-    for idx in range(1,501):
+    starting_range_index = 1001
+    for idx in range(starting_range_index,starting_range_index + 500):
         a_dur = np.random.uniform(0, 5) # randomize attack
         d_dur = np.random.uniform(0, 5) # randomize decay
         s_lvl = np.random.uniform(0, 1) # randomize sustain level
@@ -179,11 +180,12 @@ elif (True): # Group 3: making samples with multiple waves, ADSR, slightly detun
         random.shuffle(o_list)
 
         random_range = np.random.randint(1,4)
+
         # adding the waveforms to the waves_list for the WaveAdder
         for i in range(random_range):
             freq_detune = np.random.uniform(-9, 9) # slightly detuning oscillators
 
-            o = o_list.pop()
+            o = o_list.pop() # take one oscillator from o_list
 
             if (o == oscillators.SineOscillator):
                 osc_info['sine_wave'] = [1]
@@ -199,10 +201,11 @@ elif (True): # Group 3: making samples with multiple waves, ADSR, slightly detun
                 osc_info['saw_freq'] = [note_to_hz(note+octave)+freq_detune]
 
             waves_list.append(oscillators.ModulatedOscillator(
-                o(freq=note_to_hz(note+octave)+freq_detune, amp=1/random_range),
-                envelopes.ADSREnvelope(attack_duration=a_dur, decay_duration=d_dur, sustain_level=s_lvl,
-                    sustain_duration=s_dur, release_duration=r_dur),
-                amp_mod=amp_mod
+                o(
+                    freq=note_to_hz(note+octave)+freq_detune, amp=1/random_range),
+                    envelopes.ADSREnvelope(attack_duration=a_dur, decay_duration=d_dur, sustain_level=s_lvl,
+                        sustain_duration=s_dur, release_duration=r_dur),
+                    amp_mod=amp_mod
             )
         )
 
@@ -220,7 +223,7 @@ elif (True): # Group 3: making samples with multiple waves, ADSR, slightly detun
         wave_to_file(wav, fname=f"audio_files/mono/{folder_name}/wavs/{file_name}.wav")
 
     # export dataframe as .csv
-    df.to_csv(f'audio_files/mono/{folder_name}/file_data.csv')
+    df.to_csv(f'audio_files/mono/{folder_name}/file_data{starting_range_index}-{starting_range_index + 500}.csv')
 else: # testing with single samples
     osc = WaveAdder(
         *[oscillators.ModulatedOscillator(
