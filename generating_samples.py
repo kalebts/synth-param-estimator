@@ -151,6 +151,7 @@ elif (True): # Group 3: making samples with multiple waves, ADSR, slightly detun
         note = notes[np.random.randint(0, 12)] # randomize note
         octave = octaves[np.random.randint(0, 9)] # randomize octave
 
+        # making a row for the dataframe
         osc_info = {
             'file_name': [],
             'sine_wave': [0],

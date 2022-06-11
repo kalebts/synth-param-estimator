@@ -8,7 +8,7 @@ Synthesizers have had a long history being developed as hardware instruments, bu
 
 ## Problem Statement
 
-* Can convolutional neural networks be used to accurately estimate synthesizer waveforms and the amplitude envelope (ADSR) from an audio sample? *
+*Can convolutional neural networks be used to accurately estimate synthesizer waveforms and the amplitude envelope (ADSR) from an audio sample?*
 
 ## Methods
 
@@ -22,12 +22,15 @@ Several iterations of models were created to work with different groups of data,
 
 Two Convolutional neural network models were used to estimate parameters. One CNN model performed multi-label classification using spectrograms of samples. This model was trained to find patterns in the frequencies emitted by samples (containing between 1-4 waveforms per sample). Another CNN model was used to provide estimations for ADSR durations and an approximation of the volume for the sustain portion of the envelope.
 
-Different metrics were used to grade both models, since the spectrogram model was used to solve a multi-label classification problem, and the ADSR model was used to solve a regression problem. The spectrogram CNN model had a recall score of .807 and an AUC score of .684 on the test set. The ADSR model had a mean absolute error of 0.549 and a mean squared error of 0.6437.
+Different metrics were used to grade both models, since the spectrogram model was used to solve a multi-label classification problem, and the ADSR model was used to solve a regression problem. The spectrogram CNN model had a recall score of .829 and an AUC score of .749 on the test set. The ADSR model had a mean absolute error of 0.549 and a mean squared error of 0.6437.
 
 ## Conclusions 🚧
 
+The resulting models provide decent performance in estimating synth parameters. With 82.9% of waveforms predicted to be present being correct, a user could get a decent idea of where to start with these results. The ADSR model providing a mean absolute error of around 0.549 is promising as well, since this means, on average, estimates are around .549 seconds off from the true values.
 
+In its current state, it should be referred to as a prototype, rather than a product ready for use. This is because there are several constraints that should be mentioned. These models were trained on very basic sounds. Only four waveforms were used and, even though they are very commonly used, the model cannot accurately detect anything else. Also, the amplitude plots feature generally straight lines, which other digital and hardware synths are not always expected to produce. Also, only mono samples can be predicted, so in the case that a sample consists of two waveforms where each are played exclusively in each channel, they will be treated as if they were routed together in the same channel.
 
+In the future, I would like to include estimations for the presence and parameters of common effects that are often added to sounds, such as filters and filter modulation, as well as delays, reverb, and panning between left and right channels. If possible, I would like to figure out a way to automate sample generation with software synths to improve the quality of my training dataset.
 
 ## Repository Structure
 
