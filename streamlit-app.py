@@ -59,7 +59,7 @@ def load_models():
     '''
     class_labels = None
     # wv_model, class_labels = load_model_ext('models/model3.1mc15-val_acc0.88metadata.h5')
-    wv_model = tf.keras.models.load_model('models/model3.1mc15-val_recall0.81')
+    wv_model = tf.keras.models.load_model('models/model3.1mc20-val_loss0.50')
     adsr_model_durations = tf.keras.models.load_model('models/model3.2_durationsmc31-val_mse0.50')
     adsr_model_s_lvl = tf.keras.models.load_model('models/model3.2_s_lvlmc39-val_mae0.06')
 

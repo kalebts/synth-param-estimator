@@ -5,7 +5,9 @@ matplotlib==3.5.2
 numpy==1.21.6
 pandas==1.4.2
 pyaudio==0.2.11
+pydub==0.25.1
 pygame==2.1.2
 scipy==1.8.1
+sewar==0.4.5
 streamlit==1.10.0
 tensorflow==2.8.1
