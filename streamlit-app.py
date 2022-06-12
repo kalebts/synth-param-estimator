@@ -1,4 +1,3 @@
-from random import sample
 import pandas as pd
 import streamlit as st
 import tensorflow as tf
@@ -14,6 +13,9 @@ import re
 from librosa import display
 import math
 import crepe
+from pydub import AudioSegment
+from pydub.silence import detect_nonsilent
+from sewar import uqi
 
 from components import composers, envelopes, modifiers, oscillators
 
@@ -55,12 +57,15 @@ def load_models():
         Loads models for streamlit app. @st.cache allows models to be saved after
         starting the app, and avoid being reloaded when the app logs a change.
     '''
-    wv_model, class_labels = load_model_ext('models/model2.1mc15-val_acc0.88metadata.h5')
-    adsr_model = tf.keras.models.load_model('models/model2.2mc22-val_mse0.35')
+    class_labels = None
+    # wv_model, class_labels = load_model_ext('models/model3.1mc15-val_acc0.88metadata.h5')
+    wv_model = tf.keras.models.load_model('models/model3.1mc15-val_recall0.81')
+    adsr_model_durations = tf.keras.models.load_model('models/model3.2_durationsmc31-val_mse0.50')
+    adsr_model_s_lvl = tf.keras.models.load_model('models/model3.2_s_lvlmc39-val_mae0.06')
 
-    return wv_model, class_labels, adsr_model
+    return wv_model, class_labels, adsr_model_durations, adsr_model_s_lvl
 
-wv_model, class_labels, adsr_model = load_models()
+wv_model, class_labels, adsr_model_durations, adsr_model_s_lvl = load_models()
 
 def make_plots(samples, sample_rate, file_name):
     '''
@@ -76,6 +81,7 @@ def make_plots(samples, sample_rate, file_name):
     fig = plt.Figure()
     ax = fig.add_subplot(111)
     ax.specgram(samples, Fs=sample_rate, cmap="plasma", NFFT=256, mode='default')
+    ax.set_xticks([0, 2, 4, 6, 8, 10])
     canvas = FigureCanvas(fig)
     canvas.print_figure(f'{file_name}_spec_axis.png', bbox_inches='tight')
     ax.axis('off')
@@ -86,6 +92,7 @@ def make_plots(samples, sample_rate, file_name):
     fig = plt.Figure()
     ax = fig.add_subplot(111)
     ax.plot(samples)
+    ax.set_xticks(range(0, 10*sample_rate, sample_rate))
     canvas = FigureCanvas(fig)
     canvas.print_figure(f'{file_name}_adsr_axis.png', bbox_inches='tight')
     ax.axis('off')
@@ -117,14 +124,28 @@ with upload_columns[1]:
 if file is not None:
     # read the file
     sample_rate, samples = wavfile.read(file)
-    lib_samp, lib_sample_rate = librosa.load(file)
+    lib_samp, lib_sample_rate = librosa.load(file, sr=44100, mono=False)
+    py_samp = AudioSegment.from_wav(file) # for detecting silence
+    print(lib_samp.shape)
 
     # if the sample is stereo, convert to mono
-    if samples.shape[1] > 1:
-        samples = librosa.to_mono(lib_samp)
+    if len(samples.shape) != 1:
+        if samples.shape[1] > 1:
+            samples = librosa.to_mono(lib_samp)
+            print(samples.shape)
     
+    # making sure sample rate is set to the right value
+    sample_rate = lib_sample_rate
+
+    # finding the length of the sample to clip silence out
+    non_silent_range = detect_nonsilent(py_samp, silence_thresh=-80)
+
+    ns_start = math.floor(sample_rate*(non_silent_range[0][0]/1000))
+    ns_finish = math.ceil(sample_rate*(non_silent_range[0][1]/1000))
+
     # make plots from the sample
-    make_plots(samples, sample_rate, 'og')
+    make_plots(samples[ns_start:ns_finish],
+        sample_rate, 'og')
 
     og_samp_cols = st.columns((3,3,3))
 
@@ -144,7 +165,7 @@ if file is not None:
     # predictions
 
     # load images
-    spec_img = load_img('og_spec_no_axis.png')
+    spec_img = load_img('og_spec_no_axis.png', target_size=(256, 256))
     adsr_img = load_img('og_adsr_no_axis.png', target_size=(256, 256))
     
     # process images
@@ -155,17 +176,20 @@ if file is not None:
     adsr_img_batch = np.expand_dims(adsr_img_array, axis=0)
 
     # predict adsr envelope
-    adsr_estimations = adsr_model.predict(adsr_img_batch/255)[0]
+    adsr_dur_estimations = adsr_model_durations.predict(adsr_img_batch/255)[0]
+    asdr_s_lvl_estimation = adsr_model_s_lvl.predict(adsr_img_batch/255)[0]
 
-    re_exp = '-?\d*\.\d{3}'
+    print(asdr_s_lvl_estimation[0])
 
-    a_dur = re.match(re_exp, str(adsr_estimations[0]))[0]
-    d_dur = re.match(re_exp, str(adsr_estimations[1]))[0]
-    s_dur = re.match(re_exp, str(adsr_estimations[3]))[0]
-    r_dur = re.match(re_exp, str(adsr_estimations[4]))[0]
+    re_exp = '-?\d*\.\d{0,3}'
+
+    a_dur = re.match(re_exp, str(np.abs(adsr_dur_estimations[0])))[0]
+    d_dur = re.match(re_exp, str(np.abs(adsr_dur_estimations[1])))[0]
+    s_dur = re.match(re_exp, str(np.abs(adsr_dur_estimations[2])))[0]
+    r_dur = re.match(re_exp, str(np.abs(adsr_dur_estimations[3])))[0]
 
     # absolute value of sustain level because predictions can be negative
-    s_lvl = re.match(re_exp, str(np.abs(adsr_estimations[2])))[0]
+    s_lvl = re.match(re_exp, str(np.abs(asdr_s_lvl_estimation[0])))[0]
 
     # get pitch from original sample with crepe
     _, pitches, _, _ = crepe.predict(samples[sample_rate*(int(float(a_dur))):(sample_rate*(int(float(a_dur)))+sample_rate)], sr=sample_rate)
@@ -173,39 +197,47 @@ if file is not None:
     # average pitches and get closest note to average fråequency
     pitches_avg = librosa.hz_to_note(pitches.mean())
 
-    # waveform prediction
-    waveform_prediction = (list(json.loads(class_labels).keys())[wv_model.predict(spec_img_batch).argmax(-1)[0]]) 
-
-    if (waveform_prediction == 'sq'):
-        waveform = oscillators.SquareOscillator
-        waveform_prediction = 'Square'
-    elif (waveform_prediction == 'saw'):
-        waveform = oscillators.SawtoothOscillator
-        waveform_prediction = 'Sawtooth'
-    if (waveform_prediction == 'sine'):
-        waveform = oscillators.SineOscillator
-        waveform_prediction = 'Sine'
-    if (waveform_prediction == 'tri'):
-        waveform = oscillators.TriangleOscillator
-        waveform_prediction = 'Triangle'
-
     # convert adsr predictions to floats
     a_dur = float(a_dur)
     d_dur = float(d_dur)
     s_lvl = float(s_lvl)
     s_dur = float(s_dur)
     r_dur = float(r_dur)
+
+    # waveform prediction
+    waveform_predictions = wv_model.predict(spec_img_batch)
+
+    waveadder_list = []  # oscillator objects for waveadder object
+    waves_list = [] # strings of wave names to display
+
+    for idx, res in enumerate(waveform_predictions[0]):
+        if res > .9: # returns decimals, so getting the strongest results
+            if idx == 0:
+                o = oscillators.SineOscillator
+                waves_list.append('Sine')
+            elif idx == 1:
+                o = oscillators.SquareOscillator
+                waves_list.append('Square')
+            elif idx == 2:
+                o = oscillators.SawtoothOscillator
+                waves_list.append('Sawtooth')
+            elif idx == 3:
+                o = oscillators.TriangleOscillator
+                waves_list.append('Triangle')
+            waveadder_list.append(
+                oscillators.ModulatedOscillator(
+                    o(freq=librosa.note_to_hz(
+                        chosen_note+str(int(chosen_octave)))
+                        if predict_note_octave == True
+                        else pitches.mean(), amp=1),
+                    envelopes.ADSREnvelope(attack_duration=a_dur, decay_duration=d_dur, sustain_level=s_lvl,
+                        sustain_duration=s_dur, release_duration=r_dur),
+                    amp_mod=lambda init_amp, env: env * init_amp
+            )
+        )
     
     # create predicted synth
-    osc = oscillators.ModulatedOscillator(
-        waveform(freq=librosa.note_to_hz(
-            chosen_note+str(int(chosen_octave)))
-                if predict_note_octave == True
-                else pitches.mean()    
-            , amp=1),
-        envelopes.ADSREnvelope(a_dur, d_dur, s_lvl, s_dur, r_dur),
-        amp_mod= lambda init_amp, env: env * init_amp
-    )
+    osc = composers.WaveAdder(*waveadder_list)
 
     # export prediction .wav
     wav = get_val(iter(osc), 44100 * 10)
@@ -231,9 +263,14 @@ if file is not None:
         st.subheader('Sample Estimation')
         st.audio(open('estimation.wav', 'rb'), format="audio/wav", start_time=0)
         
-        st.metric('Waveform', waveform_prediction)
+        st.metric('Waveform(s)', ", ".join(waves_list))
         if (predict_note_octave==False):
             st.metric('Detected pitch', pitches_avg)
+
+        # Universal Image Quality Index - How close spectrograms resemble each other
+        # https://ieeexplore.ieee.org/document/995823
+        st.metric(label='UQI - Spectrograms', value=round(uqi(img_to_array(load_img('og_spec_no_axis.png', target_size=(389, 515, 3))), 
+            img_to_array(load_img('est_spec_no_axis.png', target_size=(389, 515, 3)))), 3))
 
         # ADSR estimations
         st.table(
@@ -245,9 +282,4 @@ if file is not None:
                 'Sustain Level': [f'{float(s_lvl)*100}%']
             }).T
         )
-
-
-    # oscillators.ModulatedOscillator
-
-    # librosa.load(file)
 

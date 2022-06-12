@@ -1,2 +1,7 @@
 *.wav
 *.png
+*.asd
+*.aif
+*.mp3
+*.zip
+cnn_full.ipynb
