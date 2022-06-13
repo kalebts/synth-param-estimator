@@ -36,7 +36,7 @@ In the future, I would like to include estimations for the presence and paramete
 
 ## Repository Structure
 
-📂 audio_files
+📂 audio_files/mono
 
     -> 📂 1_basic_waves - .wav/.png/.csv files for first model
 
@@ -55,6 +55,8 @@ In the future, I would like to include estimations for the presence and paramete
 <!-- 📂 files - various individual files -->
 
 📂 models - saved Tensorflow models
+
+📂 .streamlit - streamlit app style code
 
 📂 synth - 18alantom's original synth repo
 
@@ -86,8 +88,8 @@ In the future, I would like to include estimations for the presence and paramete
 
 * Tensorflow (waveform/parameter estimation)
 
-* Sewar (spectrogram comparison) [pip install]
+* Sewar (spectrogram comparison) [pip install necessary]
 
-* CREPE (pitch detection) [pip install]
+* CREPE (pitch detection) [pip install necessary]
 
 ### [Synth - 18alantom](https://github.com/18alantom/synth)
