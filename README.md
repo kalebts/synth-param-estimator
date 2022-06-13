@@ -20,13 +20,17 @@ Several iterations of models were created to work with different groups of data,
 
 ## Results (subject to change by Monday)
 
-Two Convolutional neural network models were used to estimate parameters. One CNN model performed multi-label classification using spectrograms of samples. This model was trained to find patterns in the frequencies emitted by samples (containing between 1-4 waveforms per sample). Another CNN model was used to provide estimations for ADSR durations and an approximation of the volume for the sustain portion of the envelope.
+Three convolutional neural network models were used to estimate parameters. One CNN model performed multi-label classification using spectrograms of samples. This model was trained to find patterns in the frequencies emitted by samples (containing between 1-4 waveforms per sample). Two other CNN models were used to provide estimations for ADSR durations and an approximation of the volume for the sustain portion of the envelope.
 
-Different metrics were used to grade both models, since the spectrogram model was used to solve a multi-label classification problem, and the ADSR model was used to solve a regression problem. The spectrogram CNN model had a recall score of .829 and an AUC score of .749 on the test set. The ADSR model had a mean absolute error of 0.549 and a mean squared error of 0.6437.
+Different metrics were used to grade both models, since the spectrogram model was used to solve a multi-label classification problem, and the ADSR model was used to solve a regression problem. The spectrogram CNN model had a recall score of 0.7856, a precision score of around 0.7769, and an AUC score of 0.7734 on the test set. Attaining a balance between recall and precision was my goal, since earlier iterations of my model earned higher recall scores because they were blindly predicting too many waveforms per sample. For my amplitude models, the durations model had a mean absolute error of 0.436 and the sustain level model had mean absolute error of 0.055. Since durations was predicting time in seconds, an average error less than half a second is satisfactory. Also, with a mean absolute error of around 5.5% of the maximum volume on the sustain level model, I found the amplitude estimations to be useful.
 
 ## Conclusions
 
+
+
 The resulting models provide decent performance in estimating synth parameters. With 82.9% of waveforms predicted to be present being correct, a user could get a decent idea of where to start with these results. The ADSR model providing a mean absolute error of around 0.549 is promising as well, since this means, on average, estimates are around .549 seconds off from the true values.
+
+
 
 In its current state, it should be referred to as a prototype, rather than a product ready for use. This is because there are several constraints that should be mentioned. These models were trained on very basic sounds. Only four waveforms were used and, even though they are very commonly used, the model cannot accurately detect anything else. Also, the amplitude plots feature generally straight lines, which other digital and hardware synths are not always expected to produce. Also, only samples with a single channel can be predicted, so in the case that a sample consists of two waveforms where each are played exclusively in each channel, they will be treated as if they were routed together in the same channel.
 
