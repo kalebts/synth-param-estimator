@@ -18,7 +18,7 @@ Spectrograms of the audio files were created to represent each sample's audio fr
 
 Several iterations of models were created to work with different groups of data, which became slightly more complicated as the project progressed. The final models were trained and tested with spectrograms and amplitude plots of 2000 audio samples.
 
-## Results (subject to change by Monday)
+## Results
 
 Three convolutional neural network models were used to estimate parameters. One CNN model performed multi-label classification using spectrograms of the samples. This model was trained to find patterns in the frequencies emitted by samples (containing between 1-4 waveforms per sample). Two other CNN models were used to provide estimations for ADSR durations and an approximation of the volume for the sustain portion of the envelope.
 
